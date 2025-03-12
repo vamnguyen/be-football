@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  postgres:
+    container_name: postgres_football
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
+      POSTGRES_DB: ${POSTGRES_DB:-football}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    networks:
+      - football-network
+
+networks:
+  football-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
