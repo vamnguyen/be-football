@@ -7,13 +7,14 @@ import corsConfig from './config/configurations/cors.config';
 import { validationSchema } from './config/validation/env.validation';
 import databaseConfig from './config/configurations/database.config';
 import { AppConfigService } from './config/config.service';
-
+import { AuthModule } from './modules/auth/auth.module';
+import jwtConfig from './config/configurations/jwt.config';
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
-      load: [appConfig, corsConfig, databaseConfig],
+      load: [appConfig, corsConfig, databaseConfig, jwtConfig],
       validationSchema,
       validationOptions: {
         allowUnknown: true,
@@ -36,6 +37,7 @@ import { AppConfigService } from './config/config.service';
       }),
       inject: [ConfigService],
     }),
+    AuthModule,
   ],
   providers: [AppConfigService],
   exports: [AppConfigService],

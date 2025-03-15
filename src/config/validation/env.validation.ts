@@ -7,4 +7,9 @@ export const validationSchema = Joi.object({
 
   CORS_ORIGIN: Joi.string().required(),
   CORS_CREDENTIALS: Joi.boolean().required(),
+
+  JWT_ACCESS_TOKEN_SECRET: Joi.string().required(),
+  JWT_ACCESS_TOKEN_EXPIRATION_TIME: Joi.number().required(),
+  JWT_REFRESH_TOKEN_SECRET: Joi.string().required(),
+  JWT_REFRESH_TOKEN_EXPIRATION_TIME: Joi.number().required(),
 });
