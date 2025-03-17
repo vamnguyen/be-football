@@ -29,4 +29,17 @@ export class AppConfigService {
       database: this.configService.get<string>('database.database'),
     };
   }
+
+  get jwtConfig() {
+    return {
+      accessToken: {
+        secret: this.configService.get<string>('jwt.accessToken.secret'),
+        expiresIn: this.configService.get<string>('jwt.accessToken.expiresIn'),
+      },
+      refreshToken: {
+        secret: this.configService.get<string>('jwt.refreshToken.secret'),
+        expiresIn: this.configService.get<string>('jwt.refreshToken.expiresIn'),
+      },
+    };
+  }
 }

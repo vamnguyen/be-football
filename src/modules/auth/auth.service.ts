@@ -14,12 +14,14 @@ import { User } from 'src/entities';
 import { JwtService } from '@nestjs/jwt';
 import {
   ACCESS_TOKEN_PRIVATE_KEY,
+  ACCESS_TOKEN_PUBLIC_KEY,
   REFRESH_TOKEN_PRIVATE_KEY,
+  REFRESH_TOKEN_PUBLIC_KEY,
 } from 'src/core/utils/key.util';
 import { ConfigService } from '@nestjs/config';
 import { IAuthToken } from 'src/core/interfaces/entities';
-import { LoginDto } from './dto/login.dto';
 import { RefreshTokenRepository } from './repository/refresh-token.repository';
+import { ITokenPayload } from 'src/core/interfaces/entities/token-payload.interface';
 
 @Injectable()
 export class AuthService {
@@ -33,8 +35,18 @@ export class AuthService {
     private readonly refreshTokenRepository: RefreshTokenRepository,
   ) {}
 
+  async validateLogin(email: string, password: string): Promise<User | null> {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) return null;
+
+    const isPasswordValid = user.comparePassword(password);
+    if (!isPasswordValid) return null;
+
+    return user;
+  }
+
   private async generateTokens(user: User): Promise<IAuthToken> {
-    const payload = {
+    const payload: Omit<ITokenPayload, 'type'> = {
       id: user.id,
       email: user.email,
     };
@@ -45,7 +57,7 @@ export class AuthService {
         {
           algorithm: 'RS256',
           privateKey: ACCESS_TOKEN_PRIVATE_KEY,
-          expiresIn: this.configService.get('jwt.accessToken.expiresIn'),
+          expiresIn: this.configService.get('jwt.accessToken.expiresIn') * 1000,
         },
       ),
       this.jwtService.signAsync(
@@ -53,12 +65,20 @@ export class AuthService {
         {
           algorithm: 'RS256',
           privateKey: REFRESH_TOKEN_PRIVATE_KEY,
-          expiresIn: this.configService.get('jwt.refreshToken.expiresIn'),
+          expiresIn:
+            this.configService.get('jwt.refreshToken.expiresIn') * 1000,
         },
       ),
     ]);
 
-    return { accessToken, refreshToken };
+    return {
+      accessToken,
+      refreshToken,
+      accessTokenExpiresIn:
+        this.configService.get('jwt.accessToken.expiresIn') * 1000,
+      refreshTokenExpiresIn:
+        this.configService.get('jwt.refreshToken.expiresIn') * 1000,
+    };
   }
 
   async signup(
@@ -90,18 +110,8 @@ export class AuthService {
     }
   }
 
-  async login(
-    loginDto: LoginDto,
-    deviceInfo: IDeviceInfo,
-  ): Promise<IAuthToken> {
+  async login(user: User, deviceInfo: IDeviceInfo): Promise<IAuthToken> {
     try {
-      // TODO: implement local guard then remove findByEmail and comparePassword below
-      const user = await this.usersService.findByEmail(loginDto.email);
-      if (!user) throw new NotFoundException('User not found');
-
-      const isPasswordValid = user.comparePassword(loginDto.password);
-      if (!isPasswordValid) throw new UnauthorizedException('Invalid password');
-
       // Generate tokens and save refresh token to database
       const tokens = await this.generateTokens(user);
       await this.refreshTokenRepository.create({
@@ -134,6 +144,62 @@ export class AuthService {
     } catch (error) {
       this.logger.error(`Error during logout: ${error.message}`);
       throw new InternalServerErrorException('Error during logout');
+    }
+  }
+
+  async refreshTokenPair(refreshToken: string, deviceInfo: IDeviceInfo) {
+    try {
+      const payload = await this.verifyRefreshToken(refreshToken);
+
+      const user = await this.usersService.findById(payload.id);
+      if (!user) throw new UnauthorizedException('User not found');
+
+      const tokens = await this.generateTokens(user);
+      await this.refreshTokenRepository.create({
+        user,
+        token: tokens.refreshToken,
+        deviceInfo,
+      });
+
+      await this.usersService.update(user.id, {
+        lastLoginAt: new Date(),
+        isOnline: true,
+      });
+
+      return tokens;
+    } catch (error) {
+      this.logger.error(`Error refreshing token pair: ${error.message}`);
+      throw new InternalServerErrorException('Error refreshing token pair');
+    }
+  }
+
+  private async verifyRefreshToken(
+    refreshToken: string,
+  ): Promise<ITokenPayload> {
+    try {
+      const token =
+        await this.refreshTokenRepository.findValidToken(refreshToken);
+      if (!token) throw new UnauthorizedException('Invalid refresh token');
+
+      return this.jwtService.verifyAsync<ITokenPayload>(refreshToken, {
+        secret: REFRESH_TOKEN_PUBLIC_KEY,
+        algorithms: ['RS256'],
+      });
+    } catch (error) {
+      this.logger.error(`Error verifying refresh token: ${error.message}`);
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+  }
+
+  async verifyAccessToken(accessToken: string): Promise<ITokenPayload> {
+    try {
+      return this.jwtService.verifyAsync<ITokenPayload>(accessToken, {
+        secret: ACCESS_TOKEN_PUBLIC_KEY,
+        algorithms: ['RS256'],
+      });
+    } catch (error) {
+      this.logger.error(`Error verifying access token: ${error.message}`);
+      throw new UnauthorizedException('Invalid access token');
     }
   }
 }

@@ -1,13 +1,26 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
 import { Public } from 'src/common/decorators/public.decorator';
-import { LoginDto } from './dto/login.dto';
 import { User } from 'src/entities/user.entity';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { IAuthToken } from 'src/core/interfaces/entities';
 import { ConfigService } from '@nestjs/config';
+import { LocalAuthGuard } from '../../common/guards/local.guard';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { UserResponseDto } from '../users/dto/user-response.dto';
+import { plainToInstance } from 'class-transformer';
+
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -20,7 +33,7 @@ export class AuthController {
       httpOnly: true,
       secure: this.configService.get('NODE_ENV') === 'production',
       sameSite: 'strict',
-      maxAge: this.configService.get('jwt.accessToken.expiresIn') * 1000, // 30 minutes
+      maxAge: tokens.accessTokenExpiresIn,
       path: '/',
     });
 
@@ -28,7 +41,7 @@ export class AuthController {
       httpOnly: true,
       secure: this.configService.get('NODE_ENV') === 'production',
       sameSite: 'strict',
-      maxAge: this.configService.get('jwt.refreshToken.expiresIn') * 1000, // 30 days
+      maxAge: tokens.refreshTokenExpiresIn,
       path: '/',
     });
   }
@@ -61,9 +74,10 @@ export class AuthController {
   }
 
   @Post('login')
+  @UseGuards(LocalAuthGuard)
   @Public()
   async login(
-    @Body() loginDto: LoginDto,
+    @CurrentUser() user: User,
     @Req() req: Request,
     @Res() res: Response,
   ) {
@@ -72,7 +86,7 @@ export class AuthController {
       userAgent: req.headers['user-agent'],
     };
 
-    const tokens = await this.authService.login(loginDto, deviceInfo);
+    const tokens = await this.authService.login(user, deviceInfo);
     this.setCookie(res, tokens);
 
     return res.json({
@@ -83,6 +97,7 @@ export class AuthController {
   }
 
   @Post('logout')
+  @UseGuards(JwtAuthGuard)
   async logout(
     @CurrentUser() user: User,
     @Req() req: Request,
@@ -95,9 +110,39 @@ export class AuthController {
       this.clearCookie(res);
     }
 
-    // Trả về kết quả cho client
     return res.json({
       message: 'Logout successful',
+    });
+  }
+
+  @Post('refresh-token')
+  @Public()
+  async refreshToken(@Req() req: Request, @Res() res: Response) {
+    const refreshToken = req.cookies['refreshToken'];
+
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token not found');
+    }
+
+    const deviceInfo = {
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    };
+
+    const tokens = await this.authService.refreshTokenPair(
+      refreshToken,
+      deviceInfo,
+    );
+    this.setCookie(res, tokens);
+
+    return res.json({ message: 'Token refreshed successfully' });
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  me(@CurrentUser() user: User): UserResponseDto {
+    return plainToInstance(UserResponseDto, user, {
+      excludeExtraneousValues: true,
     });
   }
 }

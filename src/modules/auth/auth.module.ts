@@ -13,7 +13,8 @@ import {
 } from 'src/core/utils/key.util';
 import { UsersService } from '../users/users.service';
 import { RefreshTokenRepository } from './repository/refresh-token.repository';
-
+import { LocalStrategy } from './strategy/local.strategy';
+import { JwtStrategy } from './strategy/jwt.strategy';
 @Module({
   imports: [
     TypeOrmModule.forFeature([RefreshToken, User]),
@@ -25,7 +26,7 @@ import { RefreshTokenRepository } from './repository/refresh-token.repository';
         publicKey: ACCESS_TOKEN_PUBLIC_KEY,
         signOptions: {
           algorithm: 'RS256',
-          expiresIn: configService.get('jwt.accessToken.expiresIn'),
+          expiresIn: configService.get('jwt.accessToken.expiresIn') * 1000,
         },
       }),
       inject: [ConfigService],
@@ -39,6 +40,8 @@ import { RefreshTokenRepository } from './repository/refresh-token.repository';
     },
     AuthService,
     UsersService,
+    LocalStrategy,
+    JwtStrategy,
   ],
   exports: [AuthService],
 })

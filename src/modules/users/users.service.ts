@@ -46,4 +46,8 @@ export class UsersService {
       .addSelect('user.password')
       .getOne();
   }
+
+  async findById(id: string): Promise<User | null> {
+    return this.userRepository.findOneBy({ id });
+  }
 }
