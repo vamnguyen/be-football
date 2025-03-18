@@ -33,12 +33,8 @@ export class User extends BaseEntity {
   @Column({ type: 'boolean', default: false })
   isOnline: boolean;
 
-  @Column({ type: 'jsonb', nullable: true })
-  preferences: {
-    theme: 'light' | 'dark';
-    language: string;
-    favoriteTeam: FOOTBALL_TEAMS | null;
-  };
+  @Column({ type: 'enum', enum: FOOTBALL_TEAMS, nullable: true })
+  favoriteTeam: FOOTBALL_TEAMS | null;
 
   @BeforeInsert()
   @BeforeUpdate()

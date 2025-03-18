@@ -1,5 +1,6 @@
 import { Expose } from 'class-transformer';
-import { IsString, IsEmail } from 'class-validator';
+import { IsString, IsEmail, IsEnum } from 'class-validator';
+import { FOOTBALL_TEAMS } from 'src/core/enums';
 
 export class UserResponseDto {
   @Expose()
@@ -21,4 +22,12 @@ export class UserResponseDto {
   @Expose()
   @IsString()
   avatar: string;
+
+  @Expose()
+  @IsEnum(FOOTBALL_TEAMS)
+  favoriteTeam: FOOTBALL_TEAMS;
+
+  @Expose()
+  @IsString()
+  createdAt: string;
 }
