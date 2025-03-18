@@ -21,6 +21,7 @@ async function bootstrap() {
     }),
   );
   app.enableCors(configService.corsConfig);
+
   app.useGlobalInterceptors(new LoggingInterceptor());
 
   await app.listen(appConfig.port);

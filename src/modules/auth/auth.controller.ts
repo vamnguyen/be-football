@@ -66,11 +66,7 @@ export class AuthController {
     const tokens = await this.authService.signup(signupDto, deviceInfo);
     this.setCookie(res, tokens);
 
-    return res.json({
-      message: 'Signup successful',
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-    });
+    return res.json({ message: 'Signup successful' });
   }
 
   @Post('login')
@@ -89,11 +85,7 @@ export class AuthController {
     const tokens = await this.authService.login(user, deviceInfo);
     this.setCookie(res, tokens);
 
-    return res.json({
-      message: 'Login successful',
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-    });
+    return res.json({ message: 'Login successful' });
   }
 
   @Post('logout')

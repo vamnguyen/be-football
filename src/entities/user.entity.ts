@@ -19,6 +19,9 @@ export class User extends BaseEntity {
   lastName: string;
 
   @Column({ type: 'boolean', default: false })
+  terms: boolean;
+
+  @Column({ type: 'boolean', default: false })
   isBanned: boolean;
 
   @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user)

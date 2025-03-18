@@ -22,6 +22,12 @@ export class SignupDto {
   @Length(6, 100)
   password: string;
 
+  @IsOptional()
+  confirmPassword?: string;
+
+  @IsNotEmpty()
+  terms: boolean;
+
   @IsNotEmpty()
   @IsString()
   @IsOptional()
