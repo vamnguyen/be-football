@@ -11,7 +11,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import jwtConfig from './config/configurations/jwt.config';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { APP_GUARD } from '@nestjs/core';
-
+import { UsersModule } from './modules/users/users.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -41,6 +41,7 @@ import { APP_GUARD } from '@nestjs/core';
       inject: [ConfigService],
     }),
     AuthModule,
+    UsersModule,
   ],
   providers: [
     AppConfigService,

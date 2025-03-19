@@ -2,7 +2,10 @@ import {
   Body,
   Controller,
   Get,
+  HttpException,
+  HttpStatus,
   Post,
+  Put,
   Req,
   Res,
   UnauthorizedException,
@@ -20,6 +23,7 @@ import { LocalAuthGuard } from '../../common/guards/local.guard';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { UserResponseDto } from '../users/dto/user-response.dto';
 import { plainToInstance } from 'class-transformer';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -113,7 +117,9 @@ export class AuthController {
     const refreshToken = req.cookies['refreshToken'];
 
     if (!refreshToken) {
-      throw new UnauthorizedException('Refresh token not found');
+      throw new UnauthorizedException(
+        'Yêu cầu xác thực: Vui lòng đăng nhập lại',
+      );
     }
 
     const deviceInfo = {
@@ -121,13 +127,27 @@ export class AuthController {
       userAgent: req.headers['user-agent'],
     };
 
-    const tokens = await this.authService.refreshTokenPair(
-      refreshToken,
-      deviceInfo,
-    );
-    this.setCookie(res, tokens);
+    try {
+      const tokens = await this.authService.refreshTokenPair(
+        refreshToken,
+        deviceInfo,
+      );
+      this.setCookie(res, tokens);
 
-    return res.json({ message: 'Token refreshed successfully' });
+      return res.json({ message: 'Token refreshed successfully' });
+    } catch (error) {
+      this.clearCookie(res);
+
+      // If refresh token expired or invalid, return 410
+      if (
+        error instanceof UnauthorizedException &&
+        (error.message.includes('expired') || error.message.includes('Invalid'))
+      ) {
+        throw new HttpException('Refresh token expired', HttpStatus.GONE);
+      }
+
+      throw error;
+    }
   }
 
   @Get('me')
@@ -136,5 +156,14 @@ export class AuthController {
     return plainToInstance(UserResponseDto, user, {
       excludeExtraneousValues: true,
     });
+  }
+
+  @Put('change-password')
+  @UseGuards(JwtAuthGuard)
+  async changePassword(
+    @CurrentUser() user: User,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return await this.authService.changePassword(user, changePasswordDto);
   }
 }
