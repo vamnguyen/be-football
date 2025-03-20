@@ -1,11 +1,17 @@
 import axios from 'axios';
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Match } from '../../entities/match.entity';
 import { Prediction } from '../../entities/prediction.entity';
 import { User } from '../../entities/user.entity';
 import { ConfigService } from '@nestjs/config';
+import { FilterMatchesDto } from './dto/filter-matches.dto';
+import {
+  PaginationDto,
+  PaginationResponseDto,
+} from '../../core/dto/pagination.dto';
+import { LEAGUES } from '../../core/enums/leagues.enum';
 
 @Injectable()
 export class PredictionsService {
@@ -20,17 +26,32 @@ export class PredictionsService {
     private configService: ConfigService,
   ) {}
 
-  async getUpcomingMatches(): Promise<Match[]> {
-    const matches = await this.matchRepository.find({
-      where: {
-        matchDate: MoreThan(new Date()),
-      },
-      order: {
-        matchDate: 'ASC',
-      },
-    });
+  async getUpcomingMatches(
+    filter: FilterMatchesDto,
+  ): Promise<PaginationResponseDto<Match>> {
+    const { page = 1, limit = 10, league } = filter;
+    const skip = (page - 1) * limit;
 
-    return matches;
+    const queryBuilder = this.matchRepository
+      .createQueryBuilder('match')
+      .where('match.matchDate > :now', { now: new Date() });
+
+    if (league && league !== LEAGUES.ALL) {
+      queryBuilder.andWhere('match.league = :league', { league });
+    }
+
+    const [matches, total] = await queryBuilder
+      .orderBy('match.matchDate', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data: matches,
+      total,
+      page,
+      limit,
+    };
   }
 
   async createPrediction(
@@ -91,16 +112,28 @@ export class PredictionsService {
     }
   }
 
-  async getUserPredictions(userId: string): Promise<Prediction[]> {
-    return this.predictionRepository.find({
-      where: {
-        user: { id: userId },
-      },
-      relations: ['match'],
-      order: {
-        createdAt: 'DESC',
-      },
-    });
+  async getUserPredictions(
+    userId: string,
+    pagination: PaginationDto,
+  ): Promise<PaginationResponseDto<Prediction>> {
+    const { page = 1, limit = 10 } = pagination;
+    const skip = (page - 1) * limit;
+
+    const [predictions, total] = await this.predictionRepository
+      .createQueryBuilder('prediction')
+      .leftJoinAndSelect('prediction.match', 'match')
+      .where('prediction.userId = :userId', { userId })
+      .orderBy('prediction.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data: predictions,
+      total,
+      page,
+      limit,
+    };
   }
 
   private generatePredictionPrompt(
