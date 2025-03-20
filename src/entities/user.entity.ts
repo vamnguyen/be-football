@@ -1,7 +1,7 @@
 import { BeforeInsert, BeforeUpdate, Column, Entity, OneToMany } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { RefreshToken } from './refresh-token.entity';
-import { FOOTBALL_TEAMS } from 'src/core/enums';
+import { FOOTBALL_TEAMS } from '../core/enums';
 import { hashSync, genSaltSync, compareSync } from 'bcrypt';
 
 @Entity('users')

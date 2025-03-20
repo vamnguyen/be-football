@@ -12,12 +12,15 @@ import jwtConfig from './config/configurations/jwt.config';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { UsersModule } from './modules/users/users.module';
+import { PredictionsModule } from './modules/predictions/predictions.module';
+import aiConfig from './config/configurations/ai.config';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
-      load: [appConfig, corsConfig, databaseConfig, jwtConfig],
+      load: [appConfig, corsConfig, databaseConfig, jwtConfig, aiConfig],
       validationSchema,
       validationOptions: {
         allowUnknown: true,
@@ -42,6 +45,7 @@ import { UsersModule } from './modules/users/users.module';
     }),
     AuthModule,
     UsersModule,
+    PredictionsModule,
   ],
   providers: [
     AppConfigService,

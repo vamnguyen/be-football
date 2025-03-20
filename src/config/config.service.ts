@@ -42,4 +42,10 @@ export class AppConfigService {
       },
     };
   }
+
+  get aiConfig() {
+    return {
+      openRouterApiKey: this.configService.get<string>('ai.openRouterApiKey'),
+    };
+  }
 }
