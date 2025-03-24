@@ -1,7 +1,6 @@
 import { BeforeInsert, BeforeUpdate, Column, Entity, OneToMany } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { RefreshToken } from './refresh-token.entity';
-import { FOOTBALL_TEAMS } from '../core/enums';
 import { hashSync, genSaltSync, compareSync } from 'bcrypt';
 
 @Entity('users')
@@ -18,6 +17,9 @@ export class User extends BaseEntity {
   @Column({ type: 'varchar', nullable: true })
   lastName: string;
 
+  @Column({ nullable: true })
+  avatar: string;
+
   @Column({ type: 'boolean', default: false })
   terms: boolean;
 
@@ -32,9 +34,6 @@ export class User extends BaseEntity {
 
   @Column({ type: 'boolean', default: false })
   isOnline: boolean;
-
-  @Column({ type: 'enum', enum: FOOTBALL_TEAMS, nullable: true })
-  favoriteTeam: FOOTBALL_TEAMS | null;
 
   @BeforeInsert()
   @BeforeUpdate()

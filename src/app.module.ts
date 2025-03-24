@@ -14,6 +14,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { UsersModule } from './modules/users/users.module';
 import { PredictionsModule } from './modules/predictions/predictions.module';
 import aiConfig from './config/configurations/ai.config';
+import { LeaguesModule } from './modules/leagues/leagues.module';
+import { MatchesModule } from './modules/matches/matches.module';
 
 @Module({
   imports: [
@@ -46,6 +48,8 @@ import aiConfig from './config/configurations/ai.config';
     AuthModule,
     UsersModule,
     PredictionsModule,
+    LeaguesModule,
+    MatchesModule,
   ],
   providers: [
     AppConfigService,

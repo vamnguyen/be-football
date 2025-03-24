@@ -30,7 +30,7 @@ export const seedPredictions = async (dataSource: DataSource) => {
     {
       match,
       user,
-      prediction: `
+      explanation: `
         <strong>Predicted Winner:</strong> Manchester United<br />
         <strong>Predicted Score:</strong> Manchester United 2 - 1 Liverpool<br />
         <strong>Confidence Score:</strong> 75<br />
@@ -44,7 +44,7 @@ export const seedPredictions = async (dataSource: DataSource) => {
     {
       match,
       user,
-      prediction: `
+      explanation: `
         <strong>Predicted Winner:</strong> Draw<br />
         <strong>Predicted Score:</strong> Manchester United 1 - 1 Liverpool<br />
         <strong>Confidence Score:</strong> 65<br />
@@ -62,7 +62,7 @@ export const seedPredictions = async (dataSource: DataSource) => {
       where: {
         match: { id: prediction.match.id },
         user: { id: prediction.user.id },
-        prediction: prediction.prediction,
+        explanation: prediction.explanation,
       },
     });
 

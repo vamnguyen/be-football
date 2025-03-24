@@ -6,12 +6,14 @@ import { Match } from '../../entities/match.entity';
 import { Prediction } from '../../entities/prediction.entity';
 import { User } from '../../entities/user.entity';
 import { ConfigService } from '@nestjs/config';
-import { FilterMatchesDto } from './dto/filter-matches.dto';
+import { MatchesService } from '../matches/matches.service';
+import { PREDICTION_TYPE } from '../../core/enums';
+import { UserCreatePredictionDto } from './dto/user-create-prediction.dto';
+import { UsersService } from '../users/users.service';
 import {
   PaginationDto,
   PaginationResponseDto,
 } from '../../core/dto/pagination.dto';
-import { LEAGUES } from '../../core/enums/leagues.enum';
 
 @Injectable()
 export class PredictionsService {
@@ -19,53 +21,34 @@ export class PredictionsService {
     'https://openrouter.ai/api/v1/chat/completions';
 
   constructor(
-    @InjectRepository(Match)
-    private matchRepository: Repository<Match>,
     @InjectRepository(Prediction)
     private predictionRepository: Repository<Prediction>,
     private configService: ConfigService,
+    private matchesService: MatchesService,
+    private userService: UsersService,
   ) {}
 
-  async getUpcomingMatches(
-    filter: FilterMatchesDto,
-  ): Promise<PaginationResponseDto<Match>> {
-    const { page = 1, limit = 10, league } = filter;
-    const skip = (page - 1) * limit;
+  async getAIPrediction(matchId: string, user: User): Promise<Prediction> {
+    const prediction = await this.predictionRepository
+      .createQueryBuilder('prediction')
+      .leftJoinAndSelect('prediction.match', 'match')
+      .leftJoinAndSelect('prediction.user', 'user')
+      .where('match.id = :matchId', { matchId })
+      .andWhere('user.id = :userId', { userId: user.id })
+      .andWhere('prediction.type = :type', { type: PREDICTION_TYPE.AI })
+      .getOne();
 
-    const queryBuilder = this.matchRepository
-      .createQueryBuilder('match')
-      .where('match.matchDate > :now', { now: new Date() });
-
-    if (league && league !== LEAGUES.ALL) {
-      queryBuilder.andWhere('match.league = :league', { league });
+    if (prediction) {
+      return prediction;
     }
 
-    const [matches, total] = await queryBuilder
-      .orderBy('match.matchDate', 'DESC')
-      .skip(skip)
-      .take(limit)
-      .getManyAndCount();
-
-    return {
-      data: matches,
-      total,
-      page,
-      limit,
-    };
-  }
-
-  async createPrediction(
-    matchId: string,
-    user: User,
-    additionalContext?: string,
-  ): Promise<Prediction> {
-    const match = await this.matchRepository.findOneBy({ id: matchId });
+    const match = await this.matchesService.getMatchById(matchId);
 
     if (!match) {
       throw new HttpException('Match not found', HttpStatus.NOT_FOUND);
     }
 
-    const prompt = this.generatePredictionPrompt(match, additionalContext);
+    const prompt = this.generatePredictionPrompt(match);
 
     try {
       const response = await axios.post(
@@ -76,7 +59,7 @@ export class PredictionsService {
             {
               role: 'system',
               content:
-                'You are a professional football analyst. Provide match predictions with confidence scores.',
+                'You are a professional football analyst. Please provide match predictions in Vietnamese.',
             },
             {
               role: 'user',
@@ -98,8 +81,10 @@ export class PredictionsService {
       const newPrediction = this.predictionRepository.create({
         match,
         user,
-        prediction: prediction.text,
+        explanation: prediction.explanation,
         confidence: prediction.confidence,
+        probabilities: prediction.probabilities,
+        type: PREDICTION_TYPE.AI,
       });
 
       return this.predictionRepository.save(newPrediction);
@@ -112,19 +97,58 @@ export class PredictionsService {
     }
   }
 
-  async getUserPredictions(
+  async userCreatePrediction(
     userId: string,
-    pagination: PaginationDto,
+    matchId: string,
+    body: UserCreatePredictionDto,
+  ): Promise<Prediction> {
+    const { result, explanation } = body;
+
+    const match = await this.matchesService.getMatchById(matchId);
+    if (!match)
+      throw new HttpException('Match not found', HttpStatus.NOT_FOUND);
+
+    const user = await this.userService.findById(userId);
+    if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+
+    const prediction = this.predictionRepository.create({
+      match,
+      user,
+      result,
+      explanation,
+      type: PREDICTION_TYPE.USER,
+    });
+
+    return this.predictionRepository.save(prediction);
+  }
+
+  async getMyPrediction(userId: string, matchId: string): Promise<Prediction> {
+    const prediction = await this.predictionRepository
+      .createQueryBuilder('prediction')
+      .leftJoinAndSelect('prediction.user', 'user')
+      .leftJoinAndSelect('prediction.match', 'match')
+      .where('prediction.userId = :userId', { userId })
+      .andWhere('prediction.matchId = :matchId', { matchId })
+      .andWhere('prediction.type = :type', { type: PREDICTION_TYPE.USER })
+      .getOne();
+
+    return prediction;
+  }
+
+  async getCommunityPredictions(
+    matchId: string,
+    paginationParams: PaginationDto,
   ): Promise<PaginationResponseDto<Prediction>> {
-    const { page = 1, limit = 10 } = pagination;
-    const skip = (page - 1) * limit;
+    const { page, limit } = paginationParams;
 
     const [predictions, total] = await this.predictionRepository
       .createQueryBuilder('prediction')
+      .leftJoinAndSelect('prediction.user', 'user')
       .leftJoinAndSelect('prediction.match', 'match')
-      .where('prediction.userId = :userId', { userId })
+      .where('prediction.matchId = :matchId', { matchId })
+      .andWhere('prediction.type = :type', { type: PREDICTION_TYPE.USER })
       .orderBy('prediction.createdAt', 'DESC')
-      .skip(skip)
+      .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();
 
@@ -136,43 +160,70 @@ export class PredictionsService {
     };
   }
 
-  private generatePredictionPrompt(
-    match: Match,
-    additionalContext?: string,
-  ): string {
+  private generatePredictionPrompt(match: Match): string {
     return `Please analyze and predict the outcome of this football match:
     ${match.homeTeam} vs ${match.awayTeam}
-    League: ${match.league}
+    League: ${match.league.name}
     Date: ${match.matchDate.toISOString()}
     
-    ${additionalContext ? `Additional Context: ${additionalContext}` : ''}
-    
     Please provide your prediction in the following format:
-    1. Predicted Winner: [Team name or Draw]
-    2. Predicted Score: [Home Team] [X] - [Y] [Away Team]
-    3. Confidence Score: [Number between 0-100]
-    4. Explanation: [Your detailed analysis and reasoning]`;
+    
+    PREDICTED_WINNER: [Team name or Draw]
+    PREDICTED_SCORE: [Home Team] [X] - [Y] [Away Team]
+    CONFIDENCE: [Number between 0-100]
+    PROBABILITIES:
+    - Home Win: [Number between 0-100]
+    - Draw: [Number between 0-100]
+    - Away Win: [Number between 0-100]
+    
+    EXPLANATION:
+    [Your detailed analysis and reasoning in Vietnamese only. Do not include English translation.]`;
   }
 
   private parseAIResponse(response: string): {
-    text: string;
+    explanation: string;
     confidence: number;
+    probabilities: {
+      homeWin: number;
+      draw: number;
+      awayWin: number;
+    };
   } {
     // Extract confidence score
-    const confidenceMatch = response.match(/confidence score: (\d+)/i);
+    const confidenceMatch = response.match(/CONFIDENCE:\s*(\d+)/i);
     const confidence = confidenceMatch ? parseInt(confidenceMatch[1]) : 50;
 
-    // Convert markdown to HTML and format the response
-    const formattedResponse = response
-      .replace(/\n{3,}/g, '\n\n') // Remove excessive newlines
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Convert bold to strong
-      .replace(/\*(.*?)\*/g, '<em>$1</em>') // Convert italic to em
-      .replace(/\n/g, '<br />') // Convert newlines to <br />
+    // Extract probabilities (handle both with and without %)
+    const homeWinMatch = response.match(/Home Win:\s*(\d+)(?:%?)/i);
+    const drawMatch = response.match(/Draw:\s*(\d+)(?:%?)/i);
+    const awayWinMatch = response.match(/Away Win:\s*(\d+)(?:%?)/i);
+
+    const probabilities = {
+      homeWin: homeWinMatch ? parseInt(homeWinMatch[1]) : 40,
+      draw: drawMatch ? parseInt(drawMatch[1]) : 20,
+      awayWin: awayWinMatch ? parseInt(awayWinMatch[1]) : 40,
+    };
+
+    // Extract explanation (only Vietnamese part)
+    const explanationMatch = response.match(
+      /EXPLANATION:\s*([\s\S]*?)(?=\(Translation for context:|$)/i,
+    );
+    const explanation = explanationMatch
+      ? explanationMatch[1].trim()
+      : response;
+
+    // Format the explanation
+    const formattedExplanation = explanation
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/\n/g, '<br />')
       .trim();
 
     return {
-      text: formattedResponse,
+      explanation: formattedExplanation,
       confidence,
+      probabilities,
     };
   }
 }

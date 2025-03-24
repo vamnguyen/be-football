@@ -1,10 +1,14 @@
 import { DataSource } from 'typeorm';
-import { seedMatches } from './matches.seed';
 import { seedPredictions } from './predictions.seed';
+import { seedLeagues } from './leagues.seed';
+import { seedMatches } from './matches.seed';
 
 export const runSeeds = async (dataSource: DataSource) => {
   try {
     console.log('Running seeds...');
+
+    await seedLeagues(dataSource);
+    console.log('Leagues seeded successfully');
 
     await seedMatches(dataSource);
     console.log('Matches seeded successfully');

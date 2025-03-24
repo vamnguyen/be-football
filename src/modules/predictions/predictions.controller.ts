@@ -1,38 +1,57 @@
-import { Controller, Get, Post, Body, UseGuards, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  UseGuards,
+  Param,
+  Post,
+  Body,
+  Query,
+} from '@nestjs/common';
 import { PredictionsService } from './predictions.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../../entities/user.entity';
-import { FilterMatchesDto } from './dto/filter-matches.dto';
+import { UserCreatePredictionDto } from './dto/user-create-prediction.dto';
 import { PaginationDto } from '../../core/dto/pagination.dto';
 
-@Controller('predictions')
 @UseGuards(JwtAuthGuard)
+@Controller('predictions')
 export class PredictionsController {
   constructor(private readonly predictionsService: PredictionsService) {}
 
-  @Get('matches')
-  async getUpcomingMatches(@Query() filter: FilterMatchesDto) {
-    return this.predictionsService.getUpcomingMatches(filter);
-  }
-
-  @Post('predict')
-  async createPrediction(
-    @Body() body: { matchId: string; additionalContext?: string },
+  @Get('ai-prediction/:matchId')
+  async getAIPrediction(
+    @Param('matchId') matchId: string,
     @CurrentUser() user: User,
   ) {
-    return this.predictionsService.createPrediction(
-      body.matchId,
-      user,
-      body.additionalContext,
+    return this.predictionsService.getAIPrediction(matchId, user);
+  }
+
+  @Post('user-prediction/:matchId')
+  async userCreatePrediction(
+    @CurrentUser() user: User,
+    @Param('matchId') matchId: string,
+    @Body() body: UserCreatePredictionDto,
+  ) {
+    return this.predictionsService.userCreatePrediction(user.id, matchId, body);
+  }
+
+  @Get('my-prediction/:matchId')
+  async getMyPrediction(
+    @CurrentUser() user: User,
+    @Param('matchId') matchId: string,
+  ) {
+    return this.predictionsService.getMyPrediction(user.id, matchId);
+  }
+
+  @Get('community/:matchId')
+  async getCommunityPredictions(
+    @Param('matchId') matchId: string,
+    @Query() paginationParams: PaginationDto,
+  ) {
+    return this.predictionsService.getCommunityPredictions(
+      matchId,
+      paginationParams,
     );
-  }
-
-  @Get('my-predictions')
-  async getUserPredictions(
-    @CurrentUser() user: User,
-    @Query() pagination: PaginationDto,
-  ) {
-    return this.predictionsService.getUserPredictions(user.id, pagination);
   }
 }
