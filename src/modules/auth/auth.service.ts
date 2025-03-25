@@ -147,6 +147,10 @@ export class AuthService {
       if (!token) throw new UnauthorizedException('Invalid refresh token');
 
       await this.refreshTokenRepository.revokeToken(refreshToken);
+      await this.refreshTokenRepository.revokeDeviceTokens(
+        user.id,
+        token.deviceInfo,
+      );
     } catch (error) {
       this.logger.error(`Error during logout: ${error.message}`);
       throw new InternalServerErrorException('Error during logout');
@@ -159,6 +163,8 @@ export class AuthService {
 
       const user = await this.usersService.findById(payload.id);
       if (!user) throw new UnauthorizedException('User not found');
+
+      await this.refreshTokenRepository.revokeDeviceTokens(user.id, deviceInfo);
 
       const tokens = await this.generateTokens(user);
       await this.refreshTokenRepository.create({

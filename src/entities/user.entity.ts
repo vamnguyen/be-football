@@ -1,7 +1,16 @@
-import { BeforeInsert, BeforeUpdate, Column, Entity, OneToMany } from 'typeorm';
+import {
+  BeforeInsert,
+  BeforeUpdate,
+  Column,
+  Entity,
+  ManyToMany,
+  OneToMany,
+} from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { RefreshToken } from './refresh-token.entity';
 import { hashSync, genSaltSync, compareSync } from 'bcrypt';
+import { Message } from './message.entity';
+import { ChatRoom } from './chat-room.entity';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -34,6 +43,12 @@ export class User extends BaseEntity {
 
   @Column({ type: 'boolean', default: false })
   isOnline: boolean;
+
+  @OneToMany(() => Message, (message) => message.author)
+  messages: Message[];
+
+  @ManyToMany(() => ChatRoom, (chatRoom) => chatRoom.users)
+  chatRooms: ChatRoom[];
 
   @BeforeInsert()
   @BeforeUpdate()
