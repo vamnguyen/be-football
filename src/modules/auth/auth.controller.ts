@@ -65,6 +65,9 @@ export class AuthController {
     const deviceInfo = {
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'],
+      device: req.headers['sec-ch-ua-platform'] as string,
+      browser: req.headers['sec-ch-ua'] as string,
+      os: req.headers['sec-ch-ua-platform'] as string,
     };
 
     const tokens = await this.authService.signup(signupDto, deviceInfo);
@@ -84,6 +87,9 @@ export class AuthController {
     const deviceInfo = {
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'],
+      device: req.headers['sec-ch-ua-platform'] as string,
+      browser: req.headers['sec-ch-ua'] as string,
+      os: req.headers['sec-ch-ua-platform'] as string,
     };
 
     const tokens = await this.authService.login(user, deviceInfo);

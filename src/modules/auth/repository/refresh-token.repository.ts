@@ -30,7 +30,7 @@ export class RefreshTokenRepository extends BaseRepository<RefreshToken> {
       where: { user: { id: userId }, deviceInfo, isRevoked: false },
     });
 
-    // Revoke tất cả token của thiết bị đó
+    // Revoke tất cả token của thiết bị đó (token cũ)
     await Promise.all(
       deviceTokens.map((token) =>
         this.update(token.id, {
