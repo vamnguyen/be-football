@@ -63,7 +63,7 @@ export class AuthController {
     @Res() res: Response,
   ) {
     const deviceInfo = {
-      ipAddress: req.ip,
+      ipAddress: req.headers['x-forwarded-for']?.toString() || req.ip,
       userAgent: req.headers['user-agent'],
       device: req.headers['sec-ch-ua-platform'] as string,
       browser: req.headers['sec-ch-ua'] as string,
@@ -85,7 +85,7 @@ export class AuthController {
     @Res() res: Response,
   ) {
     const deviceInfo = {
-      ipAddress: req.ip,
+      ipAddress: req.headers['x-forwarded-for']?.toString() || req.ip,
       userAgent: req.headers['user-agent'],
       device: req.headers['sec-ch-ua-platform'] as string,
       browser: req.headers['sec-ch-ua'] as string,
@@ -129,7 +129,7 @@ export class AuthController {
     }
 
     const deviceInfo = {
-      ipAddress: req.ip,
+      ipAddress: req.headers['x-forwarded-for']?.toString() || req.ip,
       userAgent: req.headers['user-agent'],
       device: req.headers['sec-ch-ua-platform'] as string,
       browser: req.headers['sec-ch-ua'] as string,
