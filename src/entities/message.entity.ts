@@ -12,9 +12,6 @@ export class Message extends BaseEntity {
   @Column({ type: 'boolean', default: false })
   isEdited: boolean;
 
-  @Column({ type: 'boolean', default: false })
-  isDeleted: boolean;
-
   @ManyToOne(() => User, (user) => user.messages)
   author: User;
 

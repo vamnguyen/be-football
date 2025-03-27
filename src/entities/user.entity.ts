@@ -11,6 +11,7 @@ import { RefreshToken } from './refresh-token.entity';
 import { hashSync, genSaltSync, compareSync } from 'bcrypt';
 import { Message } from './message.entity';
 import { ChatRoom } from './chat-room.entity';
+import { ROLE } from '@/core/enums';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -34,6 +35,9 @@ export class User extends BaseEntity {
 
   @Column({ type: 'boolean', default: false })
   isBanned: boolean;
+
+  @Column({ type: 'enum', enum: ROLE, default: ROLE.USER })
+  role: ROLE;
 
   @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user)
   refreshTokens: RefreshToken[];

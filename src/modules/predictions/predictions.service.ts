@@ -157,6 +157,7 @@ export class PredictionsService {
       total,
       page,
       limit,
+      totalPages: Math.ceil(total / limit),
     };
   }
 

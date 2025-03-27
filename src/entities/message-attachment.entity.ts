@@ -14,5 +14,5 @@ export class MessageAttachment extends BaseEntity {
   url: string;
 
   @Column()
-  mimeType: string;
+  mimetype: string;
 }

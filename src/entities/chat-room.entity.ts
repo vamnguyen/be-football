@@ -2,6 +2,7 @@ import {
   Column,
   Entity,
   JoinColumn,
+  JoinTable,
   ManyToMany,
   OneToMany,
   OneToOne,
@@ -16,6 +17,9 @@ export class ChatRoom extends BaseEntity {
   @Column()
   name: string;
 
+  @Column({ type: 'text', nullable: true })
+  description: string;
+
   @OneToOne(() => Match)
   @JoinColumn({ name: 'matchId' })
   match: Match;
@@ -28,5 +32,10 @@ export class ChatRoom extends BaseEntity {
   admin: User;
 
   @ManyToMany(() => User, (user) => user.chatRooms)
+  @JoinTable({
+    name: 'chat_room_participants',
+    joinColumn: { name: 'chatRoomId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'userId', referencedColumnName: 'id' },
+  })
   users: User[];
 }

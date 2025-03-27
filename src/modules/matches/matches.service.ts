@@ -43,6 +43,7 @@ export class MatchesService {
       total,
       page,
       limit,
+      totalPages: Math.ceil(total / limit),
     };
   }
 

@@ -1,4 +1,5 @@
 import {
+  Column,
   CreateDateColumn,
   DeleteDateColumn,
   PrimaryGeneratedColumn,
@@ -18,4 +19,7 @@ export abstract class BaseEntity extends IdentityEntity {
 
   @DeleteDateColumn({ nullable: true, select: false })
   deletedAt: Date | null;
+
+  @Column({ type: 'boolean', default: false, select: false })
+  isDeleted: boolean;
 }

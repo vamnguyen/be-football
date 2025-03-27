@@ -16,6 +16,8 @@ import { PredictionsModule } from './modules/predictions/predictions.module';
 import aiConfig from './config/configurations/ai.config';
 import { LeaguesModule } from './modules/leagues/leagues.module';
 import { MatchesModule } from './modules/matches/matches.module';
+import { MessagesModule } from './modules/messages/messages.module';
+import { RoomsModule } from './modules/rooms/rooms.module';
 
 @Module({
   imports: [
@@ -50,6 +52,8 @@ import { MatchesModule } from './modules/matches/matches.module';
     PredictionsModule,
     LeaguesModule,
     MatchesModule,
+    MessagesModule,
+    RoomsModule,
   ],
   providers: [
     AppConfigService,
