@@ -1,18 +1,9 @@
-import { Column, Entity, ManyToOne } from 'typeorm';
-import { BaseEntity } from './base.entity';
+import { Entity, ManyToOne } from 'typeorm';
 import { Message } from './message.entity';
+import { File } from './file.entity';
 
 @Entity('message_attachments')
-export class MessageAttachment extends BaseEntity {
+export class MessageAttachment extends File {
   @ManyToOne(() => Message, (message) => message.attachments)
   message: Message;
-
-  @Column({ select: false })
-  key: string;
-
-  @Column()
-  url: string;
-
-  @Column()
-  mimetype: string;
 }

@@ -18,13 +18,24 @@ import { LeaguesModule } from './modules/leagues/leagues.module';
 import { MatchesModule } from './modules/matches/matches.module';
 import { MessagesModule } from './modules/messages/messages.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
+import { FilesModule } from './modules/files/files.module';
+import s3Config from './config/configurations/s3.config';
+import { cloudfrontConfig } from './config/configurations/cloudfront.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
-      load: [appConfig, corsConfig, databaseConfig, jwtConfig, aiConfig],
+      load: [
+        appConfig,
+        corsConfig,
+        databaseConfig,
+        jwtConfig,
+        aiConfig,
+        s3Config,
+        cloudfrontConfig,
+      ],
       validationSchema,
       validationOptions: {
         allowUnknown: true,
@@ -54,6 +65,7 @@ import { RoomsModule } from './modules/rooms/rooms.module';
     MatchesModule,
     MessagesModule,
     RoomsModule,
+    FilesModule,
   ],
   providers: [
     AppConfigService,
