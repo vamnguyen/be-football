@@ -67,10 +67,13 @@ export class RoomsService {
   }
 
   async getRoomById(roomId: string): Promise<ChatRoom> {
-    const room = await this.roomsRepository.findOne({
-      where: { id: roomId },
-      relations: ['match', 'match.league', 'users'],
-    });
+    const room = await this.roomsRepository
+      .createQueryBuilder('room')
+      .leftJoinAndSelect('room.match', 'match')
+      .leftJoinAndSelect('match.league', 'league')
+      .where('room.id = :roomId', { roomId })
+      .getOne();
+
     if (!room) {
       throw new NotFoundException('Room not found');
     }
