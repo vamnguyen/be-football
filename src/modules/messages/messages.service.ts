@@ -8,6 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateMessageType } from './types/create-message.type';
 import { RoomsService } from '../rooms/rooms.service';
+import { EditMessageType } from './types/edit-message.type';
 
 @Injectable()
 export class MessagesService {
@@ -25,7 +26,7 @@ export class MessagesService {
     chatRoomId,
     parentMessageId,
     attachments,
-  }: CreateMessageType): Promise<any> {
+  }: CreateMessageType): Promise<Message> {
     let parentMessage: Message;
 
     const existingRoom = await this.roomService.getRoomById(chatRoomId);
@@ -90,5 +91,25 @@ export class MessagesService {
       where: { chatRoom: { id: chatRoomId } },
       order: { createdAt: 'ASC' },
     });
+  }
+
+  async editMessage({
+    messageId,
+    authorId,
+    chatRoomId,
+    content,
+  }: EditMessageType): Promise<Message> {
+    const message = await this.messageRepository.findOne({
+      where: {
+        id: messageId,
+        chatRoom: { id: chatRoomId },
+        author: { id: authorId },
+      },
+      relations: ['author', 'chatRoom'],
+    });
+    if (!message) throw new NotFoundException('Message not found');
+
+    message.content = content;
+    return this.messageRepository.save(message);
   }
 }

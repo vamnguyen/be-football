@@ -5,6 +5,9 @@ export class MessageAttachmentDto {
   id: string;
 
   @IsString()
+  key: string;
+
+  @IsString()
   url?: string;
 
   @IsString()

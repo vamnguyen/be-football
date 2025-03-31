@@ -1,6 +1,6 @@
 import { registerAs } from '@nestjs/config';
 
-export default registerAs('cors', () => {
+export const corsConfig = registerAs('cors', () => {
   // Chuyển đổi chuỗi "true" thành boolean true
   const credentials = process.env.CORS_CREDENTIALS === 'true';
 

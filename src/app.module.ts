@@ -1,26 +1,30 @@
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
-import appConfig from './config/configurations/app.config';
-import corsConfig from './config/configurations/cors.config';
-import { validationSchema } from './config/validation/env.validation';
-import databaseConfig from './config/configurations/database.config';
+import {
+  appConfig,
+  corsConfig,
+  databaseConfig,
+  jwtConfig,
+  aiConfig,
+  s3Config,
+  cloudfrontConfig,
+} from './config/configurations';
 import { AppConfigService } from './config/config.service';
 import { AuthModule } from './modules/auth/auth.module';
-import jwtConfig from './config/configurations/jwt.config';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { UsersModule } from './modules/users/users.module';
 import { PredictionsModule } from './modules/predictions/predictions.module';
-import aiConfig from './config/configurations/ai.config';
 import { LeaguesModule } from './modules/leagues/leagues.module';
 import { MatchesModule } from './modules/matches/matches.module';
 import { MessagesModule } from './modules/messages/messages.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
 import { FilesModule } from './modules/files/files.module';
-import s3Config from './config/configurations/s3.config';
-import { cloudfrontConfig } from './config/configurations/cloudfront.config';
+import { validationSchema } from './config/validation/env.validation';
+import { EventsModule } from './modules/events/events.module';
 
 @Module({
   imports: [
@@ -58,6 +62,7 @@ import { cloudfrontConfig } from './config/configurations/cloudfront.config';
       }),
       inject: [ConfigService],
     }),
+    EventEmitterModule.forRoot(),
     AuthModule,
     UsersModule,
     PredictionsModule,
@@ -66,6 +71,7 @@ import { cloudfrontConfig } from './config/configurations/cloudfront.config';
     MessagesModule,
     RoomsModule,
     FilesModule,
+    EventsModule,
   ],
   providers: [
     AppConfigService,

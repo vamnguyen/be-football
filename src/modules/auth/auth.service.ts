@@ -222,6 +222,10 @@ export class AuthService {
     }
   }
 
+  async getUserById(id: string): Promise<User | null> {
+    return this.userRepository.findOneBy({ id });
+  }
+
   async changePassword(user: User, changePasswordDto: ChangePasswordDto) {
     const foundUser = await this.usersService.findByEmail(user.email);
     if (!foundUser) throw new NotFoundException('User not found');

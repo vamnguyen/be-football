@@ -1,5 +1,5 @@
 import { registerAs } from '@nestjs/config';
 
-export default registerAs('ai', () => ({
+export const aiConfig = registerAs('ai', () => ({
   openRouterApiKey: process.env.OPENROUTER_API_KEY,
 }));
