@@ -131,7 +131,7 @@ export class EventsGateway
   }
 
   @OnEvent('room.message.deleted')
-  handleMessageDeleted(payload: { message: Message; roomId: string }) {
+  handleMessageDeleted(payload: { messageId: string; roomId: string }) {
     this.logger.log(`Message deleted in room ${payload.roomId}`);
     this.server
       .to(`room-${payload.roomId}`)

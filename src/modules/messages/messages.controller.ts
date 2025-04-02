@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -48,17 +49,36 @@ export class MessagesController {
   }
 
   @Patch('room/:chatRoomId/:messageId')
-  editMessage(
+  async editMessage(
     @CurrentUser() user: User,
     @Param('chatRoomId') chatRoomId: string,
     @Param('messageId') messageId: string,
     @Body() editMessageDto: EditMessageDto,
-  ): Promise<Message> {
-    return this.messagesService.editMessage({
+  ): Promise<void> {
+    const updatedMessage = await this.messagesService.editMessage({
       messageId,
       authorId: user.id,
       chatRoomId,
       content: editMessageDto.content,
+    });
+
+    this.eventEmitter.emit('room.message.updated', {
+      message: updatedMessage,
+      roomId: chatRoomId,
+    });
+  }
+
+  @Delete('room/:chatRoomId/:messageId')
+  async deleteMessage(
+    @CurrentUser() user: User,
+    @Param('chatRoomId') chatRoomId: string,
+    @Param('messageId') messageId: string,
+  ): Promise<void> {
+    await this.messagesService.deleteMessage(chatRoomId, messageId);
+
+    this.eventEmitter.emit('room.message.deleted', {
+      messageId,
+      roomId: chatRoomId,
     });
   }
 }

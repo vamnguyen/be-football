@@ -76,7 +76,18 @@ export class MessagesService {
       attachments,
       parentMessage,
     });
-    return this.messageRepository.save(newMessage);
+    const savedMessage = await this.messageRepository.save(newMessage);
+
+    return this.messageRepository.findOne({
+      where: { id: savedMessage.id },
+      relations: [
+        'author',
+        'attachments',
+        'parentMessage',
+        'parentMessage.author',
+        'parentMessage.attachments',
+      ],
+    });
   }
 
   async getMessagesByRoom(chatRoomId: string): Promise<Message[]> {
@@ -88,7 +99,7 @@ export class MessagesService {
         'parentMessage.author',
         'parentMessage.attachments',
       ],
-      where: { chatRoom: { id: chatRoomId } },
+      where: { chatRoom: { id: chatRoomId }, isDeleted: false },
       order: { createdAt: 'ASC' },
     });
   }
@@ -110,6 +121,30 @@ export class MessagesService {
     if (!message) throw new NotFoundException('Message not found');
 
     message.content = content;
+    message.isEdited = true;
     return this.messageRepository.save(message);
+  }
+
+  async deleteMessage(chatRoomId: string, messageId: string): Promise<void> {
+    if (!chatRoomId || !messageId) {
+      throw new BadRequestException('chatRoomId and messageId are required');
+    }
+
+    const message = await this.messageRepository.findOne({
+      where: {
+        id: messageId,
+        chatRoom: { id: chatRoomId },
+      },
+      relations: ['chatRoom'],
+    });
+
+    if (!message) {
+      throw new NotFoundException('Message not found');
+    }
+
+    message.isDeleted = true;
+    message.deletedAt = new Date();
+
+    await this.messageRepository.save(message);
   }
 }
