@@ -11,6 +11,8 @@ import {
   aiConfig,
   s3Config,
   cloudfrontConfig,
+  footballDataConfig,
+  redisConfig,
 } from './config/configurations';
 import { AppConfigService } from './config/config.service';
 import { AuthModule } from './modules/auth/auth.module';
@@ -25,7 +27,7 @@ import { RoomsModule } from './modules/rooms/rooms.module';
 import { FilesModule } from './modules/files/files.module';
 import { validationSchema } from './config/validation/env.validation';
 import { EventsModule } from './modules/events/events.module';
-
+import { RedisModule } from './modules/redis/redis.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -39,6 +41,8 @@ import { EventsModule } from './modules/events/events.module';
         aiConfig,
         s3Config,
         cloudfrontConfig,
+        footballDataConfig,
+        redisConfig,
       ],
       validationSchema,
       validationOptions: {
@@ -72,6 +76,7 @@ import { EventsModule } from './modules/events/events.module';
     RoomsModule,
     FilesModule,
     EventsModule,
+    RedisModule,
   ],
   providers: [
     AppConfigService,

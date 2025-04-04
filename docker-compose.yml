@@ -15,6 +15,14 @@ services:
     networks:
       - football-network
 
+  redis:
+    container_name: redis_football
+    image: redis:alpine
+    ports:
+      - '6379:6379'
+    networks:
+      - football-network
+
 networks:
   football-network:
     driver: bridge

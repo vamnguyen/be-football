@@ -5,3 +5,5 @@ export * from './cors.config';
 export * from './database.config';
 export * from './jwt.config';
 export * from './s3.config';
+export * from './football-data.config';
+export * from './redis.config';
