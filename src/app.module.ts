@@ -28,6 +28,7 @@ import { FilesModule } from './modules/files/files.module';
 import { validationSchema } from './config/validation/env.validation';
 import { EventsModule } from './modules/events/events.module';
 import { RedisModule } from './modules/redis/redis.module';
+import { FootballDataModule } from './modules/football-data/football-data.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -77,6 +78,7 @@ import { RedisModule } from './modules/redis/redis.module';
     FilesModule,
     EventsModule,
     RedisModule,
+    FootballDataModule,
   ],
   providers: [
     AppConfigService,
