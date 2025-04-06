@@ -8,7 +8,6 @@ import {
   OneToOne,
 } from 'typeorm';
 import { BaseEntity } from './base.entity';
-import { Match } from './match.entity';
 import { Message } from './message.entity';
 import { User } from './user.entity';
 
@@ -20,9 +19,8 @@ export class ChatRoom extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @OneToOne(() => Match)
-  @JoinColumn({ name: 'matchId' })
-  match: Match;
+  @Column()
+  matchId: number;
 
   @OneToMany(() => Message, (message) => message.chatRoom)
   messages: Message[];

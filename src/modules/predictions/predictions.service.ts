@@ -2,7 +2,7 @@ import axios from 'axios';
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Match, Prediction, User } from '@/entities';
+import { Prediction, User } from '@/entities';
 import { ConfigService } from '@nestjs/config';
 import { PREDICTION_TYPE } from '@/core/enums';
 import { UserCreatePredictionDto } from './dto/user-create-prediction.dto';
@@ -31,7 +31,7 @@ export class PredictionsService {
   async getAIPrediction(matchId: number, user: User): Promise<Prediction> {
     // check if prediction already exists from redis
     const prediction = await this.redisService.get(
-      `prediction:${matchId}:${user.id}`,
+      `prediction:${matchId}:${user.id}:type-${PREDICTION_TYPE.AI}`,
     );
 
     if (prediction) {
@@ -75,7 +75,7 @@ export class PredictionsService {
       const prediction = this.parseAIResponse(aiResponse);
 
       const newPrediction = this.predictionRepository.create({
-        match,
+        matchId,
         user,
         explanation: prediction.explanation,
         confidence: prediction.confidence,
@@ -89,10 +89,15 @@ export class PredictionsService {
       // Cache the prediction in Redis
       await this.redisService.set(
         `prediction:${matchId}:${user.id}:type-${PREDICTION_TYPE.AI}`,
-        savedPrediction,
+        {
+          ...savedPrediction,
+          match: match,
+        },
       );
 
-      return savedPrediction;
+      return this.redisService.get(
+        `prediction:${matchId}:${user.id}:type-${PREDICTION_TYPE.AI}`,
+      );
     } catch (error) {
       console.log('error in createPrediction', error);
       throw new HttpException(
@@ -117,7 +122,7 @@ export class PredictionsService {
     if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
 
     const prediction = this.predictionRepository.create({
-      match,
+      matchId,
       user,
       result,
       explanation,
@@ -129,10 +134,15 @@ export class PredictionsService {
     // Cache the prediction in Redis
     await this.redisService.set(
       `prediction:${matchId}:${user.id}:type-${PREDICTION_TYPE.USER}`,
-      savedPrediction,
+      {
+        ...savedPrediction,
+        match: match,
+      },
     );
 
-    return savedPrediction;
+    return this.redisService.get(
+      `prediction:${matchId}:${user.id}:type-${PREDICTION_TYPE.USER}`,
+    );
   }
 
   async getMyPrediction(userId: string, matchId: number): Promise<Prediction> {
@@ -153,10 +163,13 @@ export class PredictionsService {
   ): Promise<PaginationResponseDto<Prediction>> {
     const { page, limit } = paginationParams;
 
+    const match = await this.footballDataService.getMatch(matchId);
+    if (!match)
+      throw new HttpException('Match not found', HttpStatus.NOT_FOUND);
+
     const [predictions, total] = await this.predictionRepository
       .createQueryBuilder('prediction')
       .leftJoinAndSelect('prediction.user', 'user')
-      .leftJoinAndSelect('prediction.match', 'match')
       .where('prediction.matchId = :matchId', { matchId })
       .andWhere('prediction.type = :type', { type: PREDICTION_TYPE.USER })
       .orderBy('prediction.createdAt', 'DESC')
@@ -164,8 +177,13 @@ export class PredictionsService {
       .take(limit)
       .getManyAndCount();
 
+    const predictionsWithMatch = predictions.map((prediction) => ({
+      ...prediction,
+      match,
+    }));
+
     return {
-      data: predictions,
+      data: predictionsWithMatch,
       total,
       page,
       limit,
@@ -173,7 +191,7 @@ export class PredictionsService {
     };
   }
 
-  private generatePredictionPrompt(match: Match): string {
+  private generatePredictionPrompt(match: any): string {
     return `Please analyze and predict the outcome of this football match:
     ${match.homeTeam.name} vs ${match.awayTeam.name}
     League: ${match.competition.name}

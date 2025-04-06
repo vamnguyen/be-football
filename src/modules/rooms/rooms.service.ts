@@ -25,14 +25,14 @@ export class RoomsService {
     createRoomDto: CreateRoomDto,
   ): Promise<ChatRoom> {
     const existingRoom = await this.roomsRepository.findOneBy({
-      match: { id: matchId },
+      matchId,
     });
     if (existingRoom) {
       throw new ConflictException('Room already exists');
     }
 
     const room = this.roomsRepository.create({
-      match: { id: matchId },
+      matchId,
       admin: user,
       ...createRoomDto,
     });
