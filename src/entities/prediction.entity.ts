@@ -1,12 +1,33 @@
-import { Entity, Column, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  Column,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
+} from 'typeorm';
 import { Match } from './match.entity';
 import { User } from './user.entity';
-import { BaseEntity } from './base.entity';
 import { PREDICTION_TYPE } from '../core/enums';
 
 @Entity('predictions')
-export class Prediction extends BaseEntity {
-  @ManyToOne(() => Match, (match) => match.predictions)
+export class Prediction {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @DeleteDateColumn({ nullable: true })
+  deletedAt: Date | null;
+
+  @ManyToOne(() => Match, (match) => match.predictions, {
+    createForeignKeyConstraints: false,
+  })
   match: Match;
 
   @ManyToOne(() => User)

@@ -1,44 +1,45 @@
-import { Entity, Column, OneToMany, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  Column,
+  OneToMany,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Prediction } from './prediction.entity';
-import { BaseEntity } from './base.entity';
-import { League } from './league.entity';
-import { SPORTS } from '../core/enums/sports.enum';
+import { Team } from './team.entity';
+import { Competition } from './competition.entity';
 
 @Entity('matches')
-export class Match extends BaseEntity {
-  @Column()
-  homeTeam: string;
+export class Match {
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @Column()
-  awayTeam: string;
+  utcDate: Date;
 
   @Column()
-  matchDate: Date;
+  status: string;
 
   @Column()
-  matchTime: string;
+  matchday: number;
 
-  @ManyToOne(() => League, (league) => league.matches)
-  league: League;
+  @Column()
+  stage: string;
 
-  @Column({ type: 'enum', enum: SPORTS })
-  sport: SPORTS;
+  @Column()
+  group: string;
 
-  @Column({ nullable: true })
-  thumbnail?: string;
+  @Column()
+  lastUpdated: Date;
 
-  @Column({ default: false })
-  isFinished: boolean;
+  @ManyToOne(() => Team, (team) => team.homeMatches)
+  homeTeam: Team;
 
-  @Column({ nullable: true })
-  score?: string;
+  @ManyToOne(() => Team, (team) => team.awayMatches)
+  awayTeam: Team;
 
-  @Column({ type: 'jsonb', nullable: true })
-  additionalInfo?: {
-    games?: number;
-    platform?: string;
-    gameTitle?: string;
-  };
+  @ManyToOne(() => Competition, (competition) => competition.matches)
+  competition: Competition;
 
   @OneToMany(() => Prediction, (prediction) => prediction.match)
   predictions: Prediction[];

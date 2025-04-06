@@ -27,7 +27,7 @@ export class RoomsController {
   @Post(':matchId')
   createRoom(
     @CurrentUser() user: User,
-    @Param('matchId') matchId: string,
+    @Param('matchId') matchId: number,
     @Body() createRoomDto: CreateRoomDto,
   ): Promise<ChatRoom> {
     if (user.role !== ROLE.ADMIN) {

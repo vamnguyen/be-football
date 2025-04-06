@@ -2,18 +2,17 @@ import axios from 'axios';
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Match } from '../../entities/match.entity';
-import { Prediction } from '../../entities/prediction.entity';
-import { User } from '../../entities/user.entity';
+import { Match, Prediction, User } from '@/entities';
 import { ConfigService } from '@nestjs/config';
-import { MatchesService } from '../matches/matches.service';
-import { PREDICTION_TYPE } from '../../core/enums';
+import { PREDICTION_TYPE } from '@/core/enums';
 import { UserCreatePredictionDto } from './dto/user-create-prediction.dto';
-import { UsersService } from '../users/users.service';
+import { UsersService } from '@/modules/users/users.service';
 import {
   PaginationDto,
   PaginationResponseDto,
-} from '../../core/dto/pagination.dto';
+} from '@/core/dto/pagination.dto';
+import { RedisService } from '@/modules/redis/redis.service';
+import { FootballDataService } from '@/modules/football-data/football-data.service';
 
 @Injectable()
 export class PredictionsService {
@@ -24,25 +23,22 @@ export class PredictionsService {
     @InjectRepository(Prediction)
     private predictionRepository: Repository<Prediction>,
     private configService: ConfigService,
-    private matchesService: MatchesService,
     private userService: UsersService,
+    private redisService: RedisService,
+    private footballDataService: FootballDataService,
   ) {}
 
-  async getAIPrediction(matchId: string, user: User): Promise<Prediction> {
-    const prediction = await this.predictionRepository
-      .createQueryBuilder('prediction')
-      .leftJoinAndSelect('prediction.match', 'match')
-      .leftJoinAndSelect('prediction.user', 'user')
-      .where('match.id = :matchId', { matchId })
-      .andWhere('user.id = :userId', { userId: user.id })
-      .andWhere('prediction.type = :type', { type: PREDICTION_TYPE.AI })
-      .getOne();
+  async getAIPrediction(matchId: number, user: User): Promise<Prediction> {
+    // check if prediction already exists from redis
+    const prediction = await this.redisService.get(
+      `prediction:${matchId}:${user.id}`,
+    );
 
     if (prediction) {
-      return prediction;
+      return prediction as Prediction;
     }
 
-    const match = await this.matchesService.getMatchById(matchId);
+    const match = await this.footballDataService.getMatch(matchId);
 
     if (!match) {
       throw new HttpException('Match not found', HttpStatus.NOT_FOUND);
@@ -87,7 +83,16 @@ export class PredictionsService {
         type: PREDICTION_TYPE.AI,
       });
 
-      return this.predictionRepository.save(newPrediction);
+      const savedPrediction =
+        await this.predictionRepository.save(newPrediction);
+
+      // Cache the prediction in Redis
+      await this.redisService.set(
+        `prediction:${matchId}:${user.id}:type-${PREDICTION_TYPE.AI}`,
+        savedPrediction,
+      );
+
+      return savedPrediction;
     } catch (error) {
       console.log('error in createPrediction', error);
       throw new HttpException(
@@ -99,12 +104,12 @@ export class PredictionsService {
 
   async userCreatePrediction(
     userId: string,
-    matchId: string,
+    matchId: number,
     body: UserCreatePredictionDto,
   ): Promise<Prediction> {
     const { result, explanation } = body;
 
-    const match = await this.matchesService.getMatchById(matchId);
+    const match = await this.footballDataService.getMatch(matchId);
     if (!match)
       throw new HttpException('Match not found', HttpStatus.NOT_FOUND);
 
@@ -119,24 +124,31 @@ export class PredictionsService {
       type: PREDICTION_TYPE.USER,
     });
 
-    return this.predictionRepository.save(prediction);
+    const savedPrediction = await this.predictionRepository.save(prediction);
+
+    // Cache the prediction in Redis
+    await this.redisService.set(
+      `prediction:${matchId}:${user.id}:type-${PREDICTION_TYPE.USER}`,
+      savedPrediction,
+    );
+
+    return savedPrediction;
   }
 
-  async getMyPrediction(userId: string, matchId: string): Promise<Prediction> {
-    const prediction = await this.predictionRepository
-      .createQueryBuilder('prediction')
-      .leftJoinAndSelect('prediction.user', 'user')
-      .leftJoinAndSelect('prediction.match', 'match')
-      .where('prediction.userId = :userId', { userId })
-      .andWhere('prediction.matchId = :matchId', { matchId })
-      .andWhere('prediction.type = :type', { type: PREDICTION_TYPE.USER })
-      .getOne();
+  async getMyPrediction(userId: string, matchId: number): Promise<Prediction> {
+    const prediction = await this.redisService.get(
+      `prediction:${matchId}:${userId}:type-${PREDICTION_TYPE.USER}`,
+    );
 
-    return prediction;
+    if (prediction) {
+      return prediction as Prediction;
+    }
+
+    return null;
   }
 
   async getCommunityPredictions(
-    matchId: string,
+    matchId: number,
     paginationParams: PaginationDto,
   ): Promise<PaginationResponseDto<Prediction>> {
     const { page, limit } = paginationParams;
@@ -163,9 +175,9 @@ export class PredictionsService {
 
   private generatePredictionPrompt(match: Match): string {
     return `Please analyze and predict the outcome of this football match:
-    ${match.homeTeam} vs ${match.awayTeam}
-    League: ${match.league.name}
-    Date: ${match.matchDate.toISOString()}
+    ${match.homeTeam.name} vs ${match.awayTeam.name}
+    League: ${match.competition.name}
+    Date: ${match.utcDate.toLocaleString()}
     
     Please provide your prediction in the following format:
     

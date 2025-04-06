@@ -8,5 +8,6 @@ import { FootballDataController } from './football-data.controller';
   imports: [HttpModule, RedisModule],
   controllers: [FootballDataController],
   providers: [FootballDataService],
+  exports: [FootballDataService],
 })
 export class FootballDataModule {}

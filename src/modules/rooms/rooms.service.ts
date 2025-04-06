@@ -21,7 +21,7 @@ export class RoomsService {
 
   async createRoom(
     user: User,
-    matchId: string,
+    matchId: number,
     createRoomDto: CreateRoomDto,
   ): Promise<ChatRoom> {
     const existingRoom = await this.roomsRepository.findOneBy({

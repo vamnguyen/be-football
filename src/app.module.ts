@@ -20,8 +20,6 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { UsersModule } from './modules/users/users.module';
 import { PredictionsModule } from './modules/predictions/predictions.module';
-import { LeaguesModule } from './modules/leagues/leagues.module';
-import { MatchesModule } from './modules/matches/matches.module';
 import { MessagesModule } from './modules/messages/messages.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
 import { FilesModule } from './modules/files/files.module';
@@ -71,8 +69,6 @@ import { FootballDataModule } from './modules/football-data/football-data.module
     AuthModule,
     UsersModule,
     PredictionsModule,
-    LeaguesModule,
-    MatchesModule,
     MessagesModule,
     RoomsModule,
     FilesModule,
